@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Корсик — чат-бот адаптации</title>
+  <style>
+:root {
+  color-scheme: light;
+  --blue: #3478f6;
+  --blue-deep: #2867dc;
+  --ink: #18202e;
+  --muted: #718099;
+  --panel: #ffffff;
+  --canvas: #eef2f8;
+  --divider: #e7ebf1;
+  --message: #f0f3f8;
+  --mine: #dbeaff;
+  --line: #d9e0ea;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; color: var(--ink); background: #dce3ef; }
+button, textarea { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(52, 120, 246, .3); outline-offset: 2px; }
+.messenger { width: min(1440px, 100vw); height: 100vh; min-height: 630px; margin: 0 auto; display: grid; grid-template-columns: 324px minmax(0, 1fr); background: var(--panel); box-shadow: 0 16px 64px rgba(35, 58, 98, .17); }
+.sidebar { min-width: 0; border-right: 1px solid var(--divider); background: #fff; display: flex; flex-direction: column; }
+.sidebar-top { height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 0 19px 0 21px; }
+.wordmark { display: inline-flex; align-items: center; gap: 10px; color: #16202d; text-decoration: none; font-size: 20px; font-weight: 800; letter-spacing: -.04em; }
+.mark { width: 31px; height: 31px; display: block; position: relative; border-radius: 45% 55% 52% 48%; background: linear-gradient(138deg, #9737e7 4%, #4859f6 43%, #28b9ff 78%, #48d3c3 100%); transform: rotate(-15deg); overflow: hidden; }
+.mark::before { content: ""; position: absolute; width: 15px; height: 15px; background: #fff; border-radius: 52% 48% 45% 55%; top: 5px; left: 8px; }
+.mark i { position: absolute; width: 7px; height: 7px; background: #3e5df6; border-radius: 50%; top: 9px; left: 12px; }
+.compose-button, .more { border: 0; background: transparent; color: #8492a8; font-size: 24px; line-height: 1; padding: 8px; }
+.compose-button:hover, .more:hover { color: var(--blue); }
+.search { height: 37px; display: flex; align-items: center; margin: 0 15px 12px; padding: 0 12px; border-radius: 10px; background: #f2f4f7; color: #8a97a9; font-size: 13px; }
+.chat-list { padding: 0 7px; overflow-y: auto; }
+.role-switcher { margin: 18px 16px 12px; padding-top: 14px; border-top: 1px solid var(--divider); }
+.role-switcher p { margin: 0 0 7px 7px; color: #8a97aa; font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+.role-tab { width: 100%; display: flex; align-items: flex-start; gap: 8px; border: 0; border-radius: 8px; padding: 7px 7px; color: #64748b; background: transparent; text-align: left; font-size: 11px; line-height: 1.16; }
+.role-tab span { min-width: 16px; color: #a0aec0; font-size: 9px; padding-top: 1px; }.role-tab:hover { color: var(--blue); background: #f5f8fd; }.role-tab.active { color: #255db7; background: #edf4ff; font-weight: 700; }.role-tab.active span { color: var(--blue); }
+.conversation { width: 100%; border: 0; padding: 10px 9px; border-radius: 11px; display: flex; align-items: center; gap: 11px; background: #edf4ff; color: inherit; text-align: left; }
+.conversation-text { min-width: 0; flex: 1; }
+.conversation-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.conversation-top strong { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conversation-top time { flex: 0 0 auto; font-size: 11px; color: #7085a7; }
+.conversation-preview { display: block; margin-top: 3px; color: #6a7c99; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.avatar { width: 42px; height: 42px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; font-size: 17px; font-weight: 800; }
+.avatar-k { color: #fff; background: linear-gradient(140deg, #9043dc, #5274f3 54%, #41c9e7); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22); }
+.avatar-user { width: 34px; height: 34px; background: #e9d9ff; color: #7041b2; font-size: 13px; }
+.sidebar-foot { padding: 14px 18px; margin-top: auto; border-top: 1px solid var(--divider); display: flex; align-items: center; gap: 9px; }
+.sidebar-foot strong { display: block; font-size: 13px; }
+.sidebar-foot small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
+.sidebar-foot .more { margin-left: auto; font-size: 16px; padding: 3px; letter-spacing: 1px; }
+.chat-area { min-width: 0; display: flex; flex-direction: column; background: var(--canvas); }
+.chat-header { height: 76px; flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 0 27px; background: rgba(255, 255, 255, .96); border-bottom: 1px solid var(--divider); }
+.header-avatar { width: 40px; height: 40px; font-size: 16px; }
+.chat-title { min-width: 0; }
+.chat-title h1 { margin: 0; font-size: 15px; font-weight: 750; letter-spacing: -.015em; }
+.chat-title p { margin: 3px 0 0; color: #718099; font-size: 12px; }
+.online-dot { width: 7px; height: 7px; display: inline-block; margin-right: 4px; border-radius: 50%; background: #4acb80; }
+.header-action { margin-left: auto; border: 1px solid var(--line); border-radius: 8px; padding: 7px 11px; color: #61718a; background: #fff; font-size: 12px; }
+.header-action:hover { color: var(--blue); border-color: #b5caf0; }
+.messages-scroll { flex: 1 1 auto; overflow-y: auto; padding: 24px max(7vw, 40px) 20px; display: flex; flex-direction: column; gap: 9px; scroll-behavior: smooth; }
+.day-label { align-self: center; padding: 4px 10px; margin-bottom: 8px; border-radius: 8px; background: rgba(204, 214, 229, .6); color: #718099; font-size: 11px; }
+.message { position: relative; width: fit-content; max-width: min(620px, 78%); padding: 11px 14px 8px; border-radius: 13px 13px 13px 3px; background: var(--message); color: #1d2736; box-shadow: 0 1px 1px rgba(36, 51, 73, .04); font-size: 14px; line-height: 1.48; }
+.message p { margin: 0 0 8px; white-space: pre-line; }
+.message p:last-of-type { margin-bottom: 4px; }
+.message.user { align-self: flex-end; border-radius: 13px 13px 3px 13px; background: var(--mine); }
+.message-meta { display: flex; justify-content: flex-end; align-items: center; gap: 4px; color: #8b98aa; font-size: 10px; line-height: 1; }
+.message.user .message-status { color: #4382e4; letter-spacing: -2px; }
+.sources { margin: 8px -1px 0; padding-top: 7px; border-top: 1px solid rgba(107, 128, 153, .17); color: #6e7f99; font-size: 10px; line-height: 1.45; }
+.role-feed { align-self: center; width: min(740px, 100%); padding: 18px; border-radius: 16px; background: #fff; box-shadow: 0 5px 22px rgba(47, 68, 102, .08); }.role-feed h2 { margin: 0; font-size: 19px; letter-spacing: -.025em; }.role-feed > p { margin: 7px 0 17px; color: #667891; font-size: 13px; line-height: 1.48; }.data-flow { display: grid; grid-template-columns: 1fr 20px 1fr 20px 1fr; align-items: center; gap: 5px; margin: 0 0 16px; }.flow-step { min-height: 58px; padding: 9px; border-radius: 9px; background: #f4f7fb; color: #536580; font-size: 11px; line-height: 1.3; }.flow-step strong { display: block; margin-bottom: 3px; color: #263a58; font-size: 11px; }.flow-arrow { color: #89a4d3; text-align: center; font-size: 16px; }.role-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 13px 0; }.role-metric { padding: 10px; border: 1px solid #e1e8f2; border-radius: 9px; background: #fff; }.role-metric strong { display: block; color: #274e93; font-size: 21px; line-height: 1; }.role-metric span { display: block; margin-top: 5px; color: #74839a; font-size: 10px; line-height: 1.2; }.role-list { display: grid; gap: 7px; margin-top: 12px; }.role-list-item { padding: 10px 11px; border: 1px solid #e6ebf3; border-radius: 9px; background: #fbfcfe; }.role-list-item strong { display: block; color: #263a58; font-size: 12px; }.role-list-item span { display: block; margin-top: 3px; color: #6c7d96; font-size: 11px; line-height: 1.35; }.role-action { margin-top: 13px; border: 0; border-radius: 8px; padding: 8px 11px; color: white; background: var(--blue); font-size: 12px; font-weight: 650; }.role-action:hover { background: var(--blue-deep); }.role-privacy { margin: 12px 0 0 !important; padding: 8px 10px; border-radius: 8px; background: #f5f8fc; color: #667894 !important; font-size: 10px !important; line-height: 1.4; }
+.start-card { width: 100%; display: flex; align-items: center; gap: 10px; margin-top: 13px; padding: 11px; border: 1px solid #cfe0ff; border-radius: 10px; color: #27559d; background: #f8fbff; text-align: left; transition: border-color .16s, background .16s, transform .16s; }
+.start-card:hover { background: #edf5ff; border-color: #9cbffc; transform: translateY(-1px); }
+.start-card-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; color: white; background: var(--blue); font-size: 18px; }
+.start-card strong, .start-card small { display: block; }
+.start-card strong { font-size: 13px; }.start-card small { margin-top: 2px; color: #7283a2; font-size: 11px; }
+.suggestion-panel { min-height: 63px; display: flex; align-items: center; gap: 7px; padding: 9px max(7vw, 40px); overflow-x: auto; background: rgba(255,255,255,.74); border-top: 1px solid rgba(222, 228, 238, .8); }
+.suggestion { flex: 0 0 auto; min-height: 33px; border: 1px solid #d0d9e7; border-radius: 18px; padding: 6px 12px; color: #50637f; background: #fff; font-size: 12px; }
+.suggestion:hover { color: var(--blue); border-color: #abc7fb; background: #f8fbff; }.primary-suggestion { color: white; border-color: var(--blue); background: var(--blue); }.primary-suggestion:hover { color: white; background: var(--blue-deep); border-color: var(--blue-deep); }
+.composer { display: flex; align-items: flex-end; gap: 9px; padding: 12px max(7vw, 40px) 18px; background: #fff; }
+.composer textarea { min-height: 44px; max-height: 120px; flex: 1; resize: none; border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; color: var(--ink); background: #fff; outline: 0; font-size: 14px; line-height: 1.4; }
+.composer textarea::placeholder { color: #9aa6b8; }.composer textarea:focus { border-color: #9fbff8; box-shadow: 0 0 0 3px rgba(52,120,246,.1); }
+.attach, .send { width: 42px; height: 42px; flex: 0 0 auto; display: grid; place-items: center; border: 0; border-radius: 50%; font-size: 22px; }
+.attach { color: #7b8ba3; background: transparent; }.attach:hover { color: var(--blue); background: #edf3fe; }.send { color: white; background: var(--blue); font-size: 17px; padding-left: 3px; }.send:hover { background: var(--blue-deep); }.send:disabled { opacity: .5; cursor: default; }
+.about-dialog { width: min(360px, calc(100vw - 34px)); border: 0; border-radius: 18px; padding: 28px; color: var(--ink); box-shadow: 0 24px 65px rgba(24, 37, 61, .25); text-align: center; }.about-dialog::backdrop { background: rgba(25, 38, 59, .38); }.dialog-close { position: absolute; top: 10px; right: 12px; border: 0; background: transparent; color: #8491a5; font-size: 25px; }.dialog-avatar { margin: 0 auto 12px; width: 58px; height: 58px; font-size: 23px; }.about-dialog h2 { margin: 0 0 10px; font-size: 20px; }.about-dialog p { color: #596a82; font-size: 13px; line-height: 1.55; }.dialog-note { padding-top: 10px; border-top: 1px solid var(--divider); color: #7e8ba0 !important; font-size: 11px !important; }
+.sr-only { position: absolute; overflow: hidden; width: 1px; height: 1px; padding: 0; border: 0; margin: -1px; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+@media (max-width: 740px) { body { background: #fff; }.messenger { min-height: 100dvh; grid-template-columns: 1fr; box-shadow: none; }.sidebar { display: none; }.chat-header { height: 64px; padding: 0 16px; }.messages-scroll { padding: 18px 16px 15px; }.suggestion-panel { padding: 8px 16px; }.composer { padding: 9px 12px 14px; }.attach { display: none; }.message { max-width: 88%; }.header-action { padding: 6px 9px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+
+</style>
+</head>
+<body>
+  <main class="messenger" aria-label="Демонстрация чат-бота Корсик">
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <a class="wordmark" href="/" aria-label="Корсик, главная">
+          <span class="mark" aria-hidden="true"><i></i></span>
+          <span>КОРСИК</span>
+        </a>
+        <button class="compose-button" id="restart-button" type="button" title="Начать сценарий заново" aria-label="Начать сценарий заново">✎</button>
+      </div>
+
+      <div class="search" aria-hidden="true">⌕&nbsp;&nbsp; Поиск</div>
+
+      <section class="chat-list" aria-label="Чаты">
+        <button class="conversation active" type="button">
+          <span class="avatar avatar-k">К</span>
+          <span class="conversation-text">
+            <span class="conversation-top"><strong>Корсик</strong><time>сейчас</time></span>
+            <span class="conversation-preview" id="conversation-preview">AI-наставник по адаптации</span>
+          </span>
+        </button>
+      </section>
+
+      <nav class="role-switcher" aria-label="Роли в сценарии">
+        <p>Роли в сценарии</p>
+        <button class="role-tab active" type="button" data-role="employee"><span>01</span>Новый сотрудник</button>
+        <button class="role-tab" type="button" data-role="hr"><span>02</span>HR-менеджер</button>
+        <button class="role-tab" type="button" data-role="manager"><span>03</span>Руководитель<br>подразделения</button>
+        <button class="role-tab" type="button" data-role="director"><span>04</span>Руководитель<br>управления</button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <span class="avatar avatar-user">А</span>
+        <span><strong>Алина</strong><small id="service-status">Проверяю сервис…</small></span>
+        <button class="more" type="button" aria-label="Дополнительные действия">•••</button>
+      </div>
+    </aside>
+
+    <section class="chat-area" aria-label="Диалог с Корсиком">
+      <header class="chat-header">
+        <div class="avatar avatar-k header-avatar">К</div>
+        <div class="chat-title">
+          <h1 id="role-title">Корсик</h1>
+          <p id="role-subtitle"><span class="online-dot"></span>AI-наставник по адаптации</p>
+        </div>
+        <button class="header-action" id="about-button" type="button">О боте</button>
+      </header>
+
+      <div class="messages-scroll" id="chat-log" aria-live="polite">
+        <div class="day-label">Сегодня</div>
+        <article class="message bot welcome-message" id="welcome-message">
+          <p>Здравствуйте, Алина!</p>
+          <p>Я Корсик — ваш AI-наставник. Помогу подготовиться к выходу, разобраться в правилах и передать вопрос HR, если нужна помощь человека.</p>
+          <p>Сначала соберём короткий маршрут адаптации.</p>
+          <button class="start-card" id="start-button" type="button">
+            <span class="start-card-icon">↗</span>
+            <span><strong>Начать адаптацию</strong><small>Отвечу на 4 коротких вопроса</small></span>
+          </button>
+        </article>
+      </div>
+
+      <div class="suggestion-panel" id="suggestion-panel" aria-label="Быстрые ответы">
+        <button class="suggestion primary-suggestion" data-action="start">Начать</button>
+        <button class="suggestion" data-question="Какой рабочий график?">Рабочий график</button>
+        <button class="suggestion" data-question="Передайте HR, мне нужна помощь">Связаться с HR</button>
+      </div>
+
+      <form class="composer" id="chat-form">
+        <button class="attach" type="button" aria-label="Прикрепить файл" title="Прикрепить файл">＋</button>
+        <label class="sr-only" for="chat-text">Сообщение</label>
+        <textarea id="chat-text" rows="1" maxlength="2000" placeholder="Написать сообщение…" required></textarea>
+        <button class="send" type="submit" aria-label="Отправить сообщение" title="Отправить">➤</button>
+      </form>
+    </section>
+  </main>
+
+  <dialog id="about-dialog" class="about-dialog">
+    <button class="dialog-close" type="button" id="close-dialog" aria-label="Закрыть">×</button>
+    <span class="avatar avatar-k dialog-avatar">К</span>
+    <h2>Корсик</h2>
+    <p>Демо чат-бота для MAX. Сценарий показывает персональную адаптацию, ответы по базе знаний и эскалацию сложных вопросов HR.</p>
+    <p class="dialog-note">Интерфейс подготовлен для демонстрации будущей интеграции с MAX.</p>
+  </dialog>
+
+  <template id="message-template">
+    <article class="message">
+      <p class="message-text"></p>
+      <div class="message-meta"><time></time><span class="message-status" aria-hidden="true">✓✓</span></div>
+      <div class="sources"></div>
+    </article>
+  </template>
+  <script>
+const state = {
+  userId: "demo-employee-alina",
+  stage: "idle",
+  sending: false,
+  currentRole: "employee",
+};
+
+const roleChoices = [
+  { label: "Инженер-технолог", value: "Инженер-технолог" },
+  { label: "Специалист по клиентам", value: "Специалист по работе с клиентами" },
+  { label: "Аналитик", value: "Аналитик" },
+  { label: "Другая должность", action: "custom-role" },
+];
+
+const stageSuggestions = {
+  idle: [
+    { label: "Начать", action: "start", primary: true },
+    { label: "Рабочий график", question: "Какой рабочий график?" },
+    { label: "Связаться с HR", question: "Передайте HR, мне нужна помощь" },
+  ],
+  job: roleChoices,
+  experience: [
+    { label: "Я новичок", value: "новичок" },
+    { label: "Опыт уже есть", value: "опыт есть" },
+  ],
+  location: [
+    { label: "GrPP", value: "GrPP" },
+    { label: "GTP", value: "GTP" },
+    { label: "Luzhniki", value: "Luzhniki" },
+  ],
+  date: [],
+  ready: [
+    { label: "Мой маршрут", question: "/status" },
+    { label: "Рабочий график", question: "Какой рабочий график?" },
+    { label: "Что в первый день?", question: "Что происходит в первый день?" },
+    { label: "Связаться с HR", question: "Передайте HR, мне нужна помощь" },
+  ],
+};
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    ...options,
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || `Ошибка сервера: ${response.status}`);
+  }
+  return response.json();
+}
+
+function timeNow() {
+  return new Intl.DateTimeFormat("ru-RU", { hour: "2-digit", minute: "2-digit" }).format(new Date());
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>\"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
+}
+
+function scrollToBottom() {
+  const log = document.querySelector("#chat-log");
+  requestAnimationFrame(() => { log.scrollTop = log.scrollHeight; });
+}
+
+function setConversationPreview(text) {
+  const compact = String(text).replace(/\s+/g, " ").trim();
+  document.querySelector("#conversation-preview").textContent = compact.slice(0, 52) || "AI-наставник по адаптации";
+}
+
+function addMessage(kind, text, sources = []) {
+  const fragment = document.querySelector("#message-template").content.cloneNode(true);
+  const article = fragment.querySelector(".message");
+  article.classList.add(kind);
+  fragment.querySelector(".message-text").textContent = text;
+  fragment.querySelector("time").textContent = timeNow();
+
+  if (sources.length) {
+    const sourcesBox = fragment.querySelector(".sources");
+    sources.forEach((source, index) => {
+      const line = document.createElement("div");
+      line.textContent = `Источник: ${source.document} — ${source.section}`;
+      sourcesBox.append(line);
+      if (index === sources.length - 1) line.dataset.last = "true";
+    });
+  }
+
+  document.querySelector("#chat-log").append(fragment);
+  setConversationPreview(kind === "bot" ? text : `Вы: ${text}`);
+  scrollToBottom();
+}
+
+function localDate(dayOffset) {
+  const date = new Date();
+  date.setDate(date.getDate() + dayOffset);
+  return `${String(date.getDate()).padStart(2, "0")}.${String(date.getMonth() + 1).padStart(2, "0")}.${date.getFullYear()}`;
+}
+
+function updateSuggestions() {
+  const panel = document.querySelector("#suggestion-panel");
+  const field = document.querySelector("#chat-text");
+  let options = stageSuggestions[state.stage] || stageSuggestions.ready;
+
+  if (state.stage === "date") {
+    options = [
+      { label: `Завтра, ${localDate(1)}`, value: localDate(1) },
+      { label: `В понедельник, ${localDate((8 - new Date().getDay()) % 7 || 7)}`, value: localDate((8 - new Date().getDay()) % 7 || 7) },
+    ];
+    field.placeholder = "Введите дату: ДД.ММ.ГГГГ";
+  } else if (state.stage === "job") {
+    field.placeholder = "Напишите должность…";
+  } else {
+    field.placeholder = "Написать сообщение…";
+  }
+
+  panel.innerHTML = "";
+  options.forEach(option => {
+    const button = document.createElement("button");
+    button.className = `suggestion${option.primary ? " primary-suggestion" : ""}`;
+    button.type = "button";
+    button.textContent = option.label;
+    if (option.action) button.dataset.action = option.action;
+    if (option.value) button.dataset.value = option.value;
+    if (option.question) button.dataset.question = option.question;
+    panel.append(button);
+  });
+}
+
+function advanceStage(sentText, oldStage) {
+  if (sentText.trim().toLowerCase() === "/start") {
+    state.stage = "job";
+  } else if (oldStage === "job") {
+    state.stage = "experience";
+  } else if (oldStage === "experience") {
+    state.stage = "location";
+  } else if (oldStage === "location") {
+    state.stage = "date";
+  } else if (oldStage === "date") {
+    state.stage = "ready";
+  }
+  updateSuggestions();
+}
+
+function setSending(isSending) {
+  state.sending = isSending;
+  const send = document.querySelector(".send");
+  send.disabled = isSending;
+  send.textContent = isSending ? "…" : "➤";
+}
+
+function localDemoReply(text, oldStage) {
+  const normalised = text.trim().toLowerCase();
+  if (normalised === "/start") {
+    return "Отлично! Соберём персональный маршрут. Какая у вас должность?";
+  }
+  if (oldStage === "job") {
+    return "Спасибо. У вас уже есть опыт в этой сфере? Выберите подходящий вариант.";
+  }
+  if (oldStage === "experience") {
+    return "Хорошо. На какой площадке вы будете работать?";
+  }
+  if (oldStage === "location") {
+    return "Когда ваш первый рабочий день? Выберите дату или введите её в формате ДД.ММ.ГГГГ.";
+  }
+  if (oldStage === "date") {
+    return "Ваш персональный маршрут готов.\n\n• Подготовьтесь к первому дню: проверьте маршрут, документы и контакты.\n• Проверьте доступы: учётную запись, корпоративные сервисы и технику.\n• Познакомьтесь с правилами: изучите актуальные документы.\n• Пройдите короткий check-in: я напишу после первого дня и через несколько дней.\n\nМожете задать вопрос по правилам или написать «Связаться с HR».";
+  }
+  if (normalised.includes("hr") || normalised.includes("помощ")) {
+    return "Готово: в демонстрационном сценарии обращение передано HR-менеджеру. Он увидит запрос и сможет связаться с сотрудником.";
+  }
+  if (normalised.includes("график")) {
+    return "Рабочий график уточняется в правилах подразделения и у руководителя. В первый рабочий день согласуйте время выхода и формат работы с вашим руководителем.";
+  }
+  if (normalised.includes("первый день")) {
+    return "В первый день Корсик напомнит проверить доступы, познакомиться с руководителем и командой, а также уточнить первые рабочие задачи.";
+  }
+  if (normalised === "/status") {
+    return "Ваш маршрут адаптации: подготовиться к первому дню, проверить доступы, изучить правила и пройти короткие check-in опросы.";
+  }
+  return "В автономной демонстрации я показываю сценарий адаптации. Выберите кнопку ниже или спросите о рабочем графике, первом дне либо обратитесь к HR.";
+}
+
+async function sendQuestion(rawText) {
+  const text = rawText.trim();
+  if (!text || state.sending) return;
+
+  const oldStage = state.stage;
+  addMessage("user", text);
+  setSending(true);
+  try {
+    const data = await api("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({ user_id: state.userId, text }),
+    });
+    addMessage("bot", data.text, data.sources || []);
+    advanceStage(text, oldStage);
+  } catch (error) {
+    if (window.location.protocol === "file:") {
+      document.querySelector("#service-status").textContent = "Автономное демо";
+      addMessage("bot", localDemoReply(text, oldStage));
+      advanceStage(text, oldStage);
+    } else {
+      addMessage("bot", `Не получилось отправить сообщение: ${error.message}. Попробуйте ещё раз.`);
+    }
+  } finally {
+    setSending(false);
+  }
+}
+
+const roleMeta = {
+  employee: { title: "Корсик", subtitle: "AI-наставник по адаптации" },
+  hr: { title: "Корсик для HR", subtitle: "Сигналы адаптации и обращения" },
+  manager: { title: "Корсик для руководителя", subtitle: "Статусы команды в адаптации" },
+  director: { title: "Корсик: weekly digest", subtitle: "Агрегированная аналитика адаптации" },
+};
+
+const mockRoleData = {
+  hr: {
+    summary: { employees: 3, open_escalations: 1, feedback_total: 3, risk_feedback: 1 },
+    escalations: [{ id: 1, display_name: "София Лебедева", job_title: "Аналитик", reason: "Нужен check-in HR", source_message: "Много задач, не успеваю и нет обратной связи." }],
+    analytics: { topics: { "адаптация": 2, "доступы": 1, "нагрузка": 1 } },
+  },
+  manager: {
+    team: [
+      { display_name: "Алина Воронцова", job_title: "Специалист по работе с клиентами", onboarding_stage: "маршрут готов", location: "GrPP" },
+      { display_name: "София Лебедева", job_title: "Аналитик", onboarding_stage: "нужен check-in", location: "Luzhniki" },
+    ],
+    meeting_prompt: "Запланируйте личную встречу с каждым новым сотрудником в первую неделю.",
+  },
+  director: {
+    weekly_digest: { sample_size: 3, sentiment: { positive: 1, negative: 1 }, risk_feedback: 1, top_topics: [{ topic: "адаптация", count: 2 }, { topic: "доступы", count: 1 }, { topic: "нагрузка", count: 1 }] },
+    note: "В отчёте используются только агрегированные данные — без личных диалогов сотрудников.",
+  },
+};
+
+function showRoleChrome(role) {
+  const meta = roleMeta[role];
+  document.querySelector("#role-title").textContent = meta.title;
+  document.querySelector("#role-subtitle").innerHTML = `<span class="online-dot"></span>${meta.subtitle}`;
+  document.querySelectorAll(".role-tab").forEach(tab => tab.classList.toggle("active", tab.dataset.role === role));
+}
+
+function cleanStage(value) {
+  return String(value || "—").replaceAll("_", " ");
+}
+
+async function getRoleData(role) {
+  if (window.location.protocol === "file:") {
+    document.querySelector("#service-status").textContent = "Автономное демо";
+    return { data: mockRoleData[role], demo: true };
+  }
+  try {
+    const endpoint = role === "hr" ? "/api/dashboard/hr" : `/api/dashboard/${role}`;
+    return { data: await api(endpoint), demo: false };
+  } catch {
+    return { data: mockRoleData[role], demo: true };
+  }
+}
+
+function renderRoleIntro(role, data, demo) {
+  const log = document.querySelector("#chat-log");
+  const card = document.createElement("section");
+  card.className = "role-feed";
+  const demoNote = demo ? " Показан демонстрационный набор данных." : "";
+
+  if (role === "hr") {
+    const summary = data.summary;
+    const escalation = data.escalations[0];
+    card.innerHTML = `
+      <h2>HR-менеджер</h2>
+      <p>Корсик собирает сигналы из сценария нового сотрудника и показывает HR только то, что требует действия.${demoNote}</p>
+      <div class="data-flow"><div class="flow-step"><strong>Новый сотрудник</strong>Профиль, check-in и запрос помощи</div><div class="flow-arrow">→</div><div class="flow-step"><strong>Корсик</strong>Классифицирует риск и тему</div><div class="flow-arrow">→</div><div class="flow-step"><strong>HR</strong>Обращение и общая аналитика</div></div>
+      <div class="role-metrics"><div class="role-metric"><strong>${escapeHtml(summary.employees)}</strong><span>сотрудников в адаптации</span></div><div class="role-metric"><strong>${escapeHtml(summary.open_escalations)}</strong><span>открытых обращений</span></div><div class="role-metric"><strong>${escapeHtml(summary.risk_feedback)}</strong><span>сигналов риска</span></div></div>
+      <div class="role-list"><div class="role-list-item"><strong>${escapeHtml(escalation?.display_name || "Нет открытых обращений")}</strong><span>${escapeHtml(escalation ? `${escalation.reason}: ${escalation.source_message}` : "Корсик продолжит мониторинг check-in ответов.")}</span></div></div>
+      <p class="role-privacy">Личная переписка сотрудника не становится HR-дашбордом: отображаются только явно переданные обращения и агрегированные сигналы.</p>`;
+  }
+
+  if (role === "manager") {
+    const team = data.team || [];
+    card.innerHTML = `
+      <h2>Руководитель подразделения</h2>
+      <p>Руководитель получает статус адаптации своих новых коллег без доступа к личному диалогу с ботом.${demoNote}</p>
+      <div class="data-flow"><div class="flow-step"><strong>Новый сотрудник</strong>Проходит маршрут и check-in</div><div class="flow-arrow">→</div><div class="flow-step"><strong>Корсик</strong>Фиксирует этап адаптации</div><div class="flow-arrow">→</div><div class="flow-step"><strong>Руководитель</strong>Получает задачу на встречу</div></div>
+      <div class="role-list">${team.length ? team.map(member => `<div class="role-list-item"><strong>${escapeHtml(member.display_name)} · ${escapeHtml(member.job_title)}</strong><span>Этап: ${escapeHtml(cleanStage(member.onboarding_stage))} · Площадка: ${escapeHtml(member.location)}</span></div>`).join("") : '<div class="role-list-item"><strong>Пока нет сотрудников</strong><span>После заполнения маршрутов здесь появится команда в адаптации.</span></div>'}</div>
+      <button class="role-action" type="button" data-manager-action="meeting">Напомнить о личной встрече</button>
+      <p class="role-privacy">${escapeHtml(data.meeting_prompt)}</p>`;
+  }
+
+  if (role === "director") {
+    const digest = data.weekly_digest;
+    const topics = digest.top_topics || [];
+    card.innerHTML = `
+      <h2>Руководитель управления</h2>
+      <p>Корсик собирает обезличенные показатели со всех сценариев и создаёт еженедельный дайджест для улучшения адаптации.${demoNote}</p>
+      <div class="data-flow"><div class="flow-step"><strong>Сотрудники</strong>Check-in и обратная связь</div><div class="flow-arrow">→</div><div class="flow-step"><strong>Корсик</strong>Агрегирует темы и риски</div><div class="flow-arrow">→</div><div class="flow-step"><strong>Руководитель</strong>Получает weekly digest</div></div>
+      <div class="role-metrics"><div class="role-metric"><strong>${escapeHtml(digest.sample_size)}</strong><span>ответов в сводке</span></div><div class="role-metric"><strong>${escapeHtml(digest.risk_feedback)}</strong><span>зон внимания</span></div><div class="role-metric"><strong>${escapeHtml(topics[0]?.topic || "—")}</strong><span>главная тема недели</span></div></div>
+      <div class="role-list">${topics.map(topic => `<div class="role-list-item"><strong>${escapeHtml(topic.topic)}</strong><span>${escapeHtml(topic.count)} упоминаний в агрегированной обратной связи</span></div>`).join("")}</div>
+      <p class="role-privacy">${escapeHtml(data.note)}</p>`;
+  }
+
+  log.append(card);
+  scrollToBottom();
+}
+
+async function changeRole(role) {
+  if (state.sending) return;
+  state.currentRole = role;
+  showRoleChrome(role);
+  const isEmployee = role === "employee";
+  document.querySelector("#suggestion-panel").hidden = !isEmployee;
+  document.querySelector("#chat-form").hidden = !isEmployee;
+
+  if (isEmployee) {
+    state.stage = "idle";
+    createWelcome();
+    updateSuggestions();
+    setConversationPreview("AI-наставник по адаптации");
+    return;
+  }
+
+  document.querySelector("#chat-log").innerHTML = '<div class="day-label">Демонстрация обмена данными</div>';
+  setConversationPreview("Ролевой сценарий");
+  const { data, demo } = await getRoleData(role);
+  renderRoleIntro(role, data, demo);
+}
+
+function createWelcome() {
+  const log = document.querySelector("#chat-log");
+  log.innerHTML = `
+    <div class="day-label">Сегодня</div>
+    <article class="message bot welcome-message">
+      <p>Здравствуйте, Алина!</p>
+      <p>Я Корсик — ваш AI-наставник. Помогу подготовиться к выходу, разобраться в правилах и передать вопрос HR, если нужна помощь человека.</p>
+      <p>Сначала соберём короткий маршрут адаптации.</p>
+      <button class="start-card" id="start-button" type="button">
+        <span class="start-card-icon">↗</span>
+        <span><strong>Начать адаптацию</strong><small>Отвечу на 4 коротких вопроса</small></span>
+      </button>
+    </article>`;
+  document.querySelector("#start-button").addEventListener("click", () => sendQuestion("/start"));
+}
+
+function resetChat() {
+  if (state.sending) return;
+  state.currentRole = "employee";
+  state.stage = "idle";
+  showRoleChrome("employee");
+  document.querySelector("#suggestion-panel").hidden = false;
+  document.querySelector("#chat-form").hidden = false;
+  createWelcome();
+  updateSuggestions();
+  setConversationPreview("AI-наставник по адаптации");
+  document.querySelector("#chat-text").focus();
+}
+
+function autoResize(field) {
+  field.style.height = "auto";
+  field.style.height = `${Math.min(field.scrollHeight, 120)}px`;
+}
+
+function handleSuggestion(event) {
+  const button = event.target.closest(".suggestion");
+  if (!button || state.sending) return;
+
+  if (button.dataset.action === "start") {
+    sendQuestion("/start");
+    return;
+  }
+  if (button.dataset.action === "custom-role") {
+    const field = document.querySelector("#chat-text");
+    field.focus();
+    field.placeholder = "Введите свою должность…";
+    return;
+  }
+  sendQuestion(button.dataset.value || button.dataset.question || "");
+}
+
+async function checkHealth() {
+  const indicator = document.querySelector("#service-status");
+  try {
+    const health = await api("/api/health");
+    indicator.textContent = health.mode === "demo" ? "Демо-режим активен" : "Бот подключён";
+  } catch {
+    indicator.textContent = window.location.protocol === "file:" ? "Автономное демо" : "Сервис пока недоступен";
+  }
+}
+
+function initDialog() {
+  const dialog = document.querySelector("#about-dialog");
+  document.querySelector("#about-button").addEventListener("click", () => dialog.showModal());
+  document.querySelector("#close-dialog").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", event => {
+    if (event.target === dialog) dialog.close();
+  });
+}
+
+function init() {
+  const form = document.querySelector("#chat-form");
+  const field = document.querySelector("#chat-text");
+
+  createWelcome();
+  updateSuggestions();
+  checkHealth();
+  initDialog();
+
+  form.addEventListener("submit", event => {
+    event.preventDefault();
+    const value = field.value;
+    if (!value.trim()) return;
+    field.value = "";
+    autoResize(field);
+    sendQuestion(value);
+  });
+  field.addEventListener("input", () => autoResize(field));
+  document.querySelector("#suggestion-panel").addEventListener("click", handleSuggestion);
+  document.querySelector("#restart-button").addEventListener("click", resetChat);
+  document.querySelectorAll(".role-tab").forEach(tab => tab.addEventListener("click", () => changeRole(tab.dataset.role)));
+  document.querySelector("#chat-log").addEventListener("click", event => {
+    const button = event.target.closest("[data-manager-action='meeting']");
+    if (!button) return;
+    button.textContent = "Напоминание сформировано";
+    button.disabled = true;
+  });
+}
+
+init();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: korsik-max-bot
+    runtime: docker
+    healthCheckPath: /api/health
+    envVars:
+      - key: DEMO_MODE
+        value: "false"
+      - key: DASHBOARD_ADMIN_TOKEN
+        generateValue: true
+      - key: GIGACHAT_AUTHORIZATION_KEY
+        sync: false
+      - key: GIGACHAT_SCOPE
+        value: GIGACHAT_API_PERS
+      - key: GIGACHAT_MODEL
+        value: GigaChat
+      - key: GIGACHAT_VERIFY_SSL
+        value: "true"
+      - key: MAX_BOT_TOKEN
+        sync: false
+      - key: MAX_SEND_MESSAGE_URL
+        sync: false
+      - key: MAX_WEBHOOK_SECRET
+        generateValue: true
+      - key: MAX_AUTH_HEADER
+        value: Authorization
+      - key: MAX_AUTH_VALUE_TEMPLATE
+        value: Bearer {token}
+    disk:
+      name: korsik-data
+      mountPath: /app/backend/data
+      sizeGB: 1

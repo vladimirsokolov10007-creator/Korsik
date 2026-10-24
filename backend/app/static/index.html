@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Корсик — чат-бот адаптации</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="messenger" aria-label="Демонстрация чат-бота Корсик">
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <a class="wordmark" href="/" aria-label="Корсик, главная">
+          <span class="mark" aria-hidden="true"><i></i></span>
+          <span>КОРСИК</span>
+        </a>
+        <button class="compose-button" id="restart-button" type="button" title="Начать сценарий заново" aria-label="Начать сценарий заново">✎</button>
+      </div>
+
+      <div class="search" aria-hidden="true">⌕&nbsp;&nbsp; Поиск</div>
+
+      <section class="chat-list" aria-label="Чаты">
+        <button class="conversation active" type="button">
+          <span class="avatar avatar-k">К</span>
+          <span class="conversation-text">
+            <span class="conversation-top"><strong>Корсик</strong><time>сейчас</time></span>
+            <span class="conversation-preview" id="conversation-preview">AI-наставник по адаптации</span>
+          </span>
+        </button>
+      </section>
+
+      <nav class="role-switcher" aria-label="Роли в сценарии">
+        <p>Роли в сценарии</p>
+        <button class="role-tab active" type="button" data-role="employee"><span>01</span>Новый сотрудник</button>
+        <button class="role-tab" type="button" data-role="hr"><span>02</span>HR-менеджер</button>
+        <button class="role-tab" type="button" data-role="manager"><span>03</span>Руководитель<br>подразделения</button>
+        <button class="role-tab" type="button" data-role="director"><span>04</span>Руководитель<br>управления</button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <span class="avatar avatar-user">А</span>
+        <span><strong>Алина</strong><small id="service-status">Проверяю сервис…</small></span>
+        <button class="more" type="button" aria-label="Дополнительные действия">•••</button>
+      </div>
+    </aside>
+
+    <section class="chat-area" aria-label="Диалог с Корсиком">
+      <header class="chat-header">
+        <div class="avatar avatar-k header-avatar">К</div>
+        <div class="chat-title">
+          <h1 id="role-title">Корсик</h1>
+          <p id="role-subtitle"><span class="online-dot"></span>AI-наставник по адаптации</p>
+        </div>
+        <button class="header-action" id="about-button" type="button">О боте</button>
+      </header>
+
+      <div class="messages-scroll" id="chat-log" aria-live="polite">
+        <div class="day-label">Сегодня</div>
+        <article class="message bot welcome-message" id="welcome-message">
+          <p>Здравствуйте, Алина!</p>
+          <p>Я Корсик — ваш AI-наставник. Помогу подготовиться к выходу, разобраться в правилах и передать вопрос HR, если нужна помощь человека.</p>
+          <p>Сначала соберём короткий маршрут адаптации.</p>
+          <button class="start-card" id="start-button" type="button">
+            <span class="start-card-icon">↗</span>
+            <span><strong>Начать адаптацию</strong><small>Отвечу на 4 коротких вопроса</small></span>
+          </button>
+        </article>
+      </div>
+
+      <div class="suggestion-panel" id="suggestion-panel" aria-label="Быстрые ответы">
+        <button class="suggestion primary-suggestion" data-action="start">Начать</button>
+        <button class="suggestion" data-question="Какой рабочий график?">Рабочий график</button>
+        <button class="suggestion" data-question="/hr">Подготовить обращение HR</button>
+      </div>
+
+      <form class="composer" id="chat-form">
+        <button class="attach" type="button" aria-label="Прикрепить файл" title="Прикрепить файл">＋</button>
+        <label class="sr-only" for="chat-text">Сообщение</label>
+        <textarea id="chat-text" rows="1" maxlength="2000" placeholder="Написать сообщение…" required></textarea>
+        <button class="send" type="submit" aria-label="Отправить сообщение" title="Отправить">➤</button>
+      </form>
+    </section>
+  </main>
+
+  <dialog id="about-dialog" class="about-dialog">
+    <button class="dialog-close" type="button" id="close-dialog" aria-label="Закрыть">×</button>
+    <span class="avatar avatar-k dialog-avatar">К</span>
+    <h2>Корсик</h2>
+    <p>Демо чат-бота для MAX. Сценарий показывает персональную адаптацию, ответы по утверждённой базе знаний и подготовку обращения HR только после подтверждения сотрудника.</p>
+    <p class="dialog-note">Интерфейс демонстрирует будущую интеграцию с MAX. При открытии автономного файла данные не отправляются.</p>
+  </dialog>
+
+  <template id="message-template">
+    <article class="message">
+      <p class="message-text"></p>
+      <div class="message-meta"><time></time><span class="message-status" aria-hidden="true">✓✓</span></div>
+      <div class="sources"></div>
+    </article>
+  </template>
+  <script src="/static/app.js"></script>
+</body>
+</html>
