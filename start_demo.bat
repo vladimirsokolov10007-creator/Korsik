@@ -1,63 +1,59 @@
 @echo off
+setlocal
 chcp 65001 >nul
+cd /d "%~dp0"
+
 echo ========================================
-echo   Запуск демо для хакатона
+echo   Запуск демо Корсик 2.0
 echo ========================================
 echo.
 
-:: Проверка Python
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo [ОШИБКА] Python не найден!
-    echo Установите Python 3.11+ с python.org
+    echo [ОШИБКА] Python не найден.
+    echo Установите Python 3.10 или новее с python.org.
     pause
     exit /b 1
 )
 
-:: Проверка .env
-if not exist "backend\.env" (
-    echo [ВНИМАНИЕ] Файл .env не найден
-    echo Копирую .env.example...
-    copy backend\.env.example backend\.env
-    echo.
-    echo [!] Откройте backend\.env и заполните:
-    echo     - GIGACHAT_TOKEN
-    echo     - OPENAI_API_KEY
-    echo.
-    pause
+if not exist ".venv\Scripts\python.exe" (
+    echo [1/3] Создаю виртуальное окружение...
+    python -m venv ".venv"
+    if errorlevel 1 goto :error
 )
 
-:: Проверка зависимостей
-echo [1/4] Проверка зависимостей...
-pip show fastapi >nul 2>&1
+set "PYTHON=%~dp0.venv\Scripts\python.exe"
+
+if not exist ".env" (
+    echo [2/3] Создаю .env из демонстрационного шаблона...
+    copy ".env.example" ".env" >nul
+    if errorlevel 1 goto :error
+)
+
+"%PYTHON%" -c "import fastapi, uvicorn, httpx, dotenv, apscheduler" >nul 2>&1
 if errorlevel 1 (
-    echo Устанавливаю зависимости...
-    pip install -r backend\requirements.txt
+    echo [2/3] Устанавливаю зависимости...
+    "%PYTHON%" -m pip install -r "requirements.txt"
+    if errorlevel 1 goto :error
 )
 
-:: Проверка базы данных
-echo [2/4] Проверка базы данных...
-if not exist "backend\data\korsik.db" (
-    echo База данных не найдена. Создаю демо-данные...
-    python backend\scripts\seed_demo.py
-    echo.
-)
-
-:: Запуск сервера
-echo [3/4] Запуск сервера...
+echo [3/3] Запускаю сервер...
 echo.
-echo ========================================
-echo   Сервер запущен!
-echo ========================================
+echo Главная:   http://127.0.0.1:8000
+echo Демо-чат:  http://127.0.0.1:8000/demo/max/chat
+echo API docs:  http://127.0.0.1:8000/docs
 echo.
-echo Демо-чат:      http://127.0.0.1:8000/demo/max/chat
-echo Главная:       http://127.0.0.1:8000
-echo API Users:     http://127.0.0.1:8000/api/users
-echo API Escalations: http://127.0.0.1:8000/api/escalations
-echo.
-echo Нажмите Ctrl+C для остановки
+echo Внешние ключи в DEMO_MODE=true не требуются.
+echo Нажмите Ctrl+C для остановки.
 echo ========================================
 echo.
 
 cd backend
-uvicorn app.main:app --reload
+"%PYTHON%" -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+exit /b %errorlevel%
+
+:error
+echo.
+echo [ОШИБКА] Не удалось подготовить проект. Проверьте сообщения выше.
+pause
+exit /b 1
