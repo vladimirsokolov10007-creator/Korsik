@@ -96,7 +96,7 @@ button:focus-visible, textarea:focus-visible { outline: 3px solid rgba(52, 120, 
   <main class="messenger" aria-label="Демонстрация чат-бота Корсик">
     <aside class="sidebar">
       <div class="sidebar-top">
-        <a class="wordmark" href="/" aria-label="Корсик, главная">
+        <a class="wordmark" href="./" aria-label="Корсик, главная">
           <span class="mark" aria-hidden="true"><i></i></span>
           <span>КОРСИК</span>
         </a>
@@ -380,7 +380,7 @@ async function sendQuestion(rawText) {
     addMessage("bot", data.text, data.sources || []);
     advanceStage(text, oldStage);
   } catch (error) {
-    if (window.location.protocol === "file:") {
+    if ((window.location.protocol === "file:" || window.location.hostname.endsWith("github.io"))) {
       document.querySelector("#service-status").textContent = "Автономное демо";
       addMessage("bot", localDemoReply(text, oldStage));
       advanceStage(text, oldStage);
@@ -430,7 +430,7 @@ function cleanStage(value) {
 }
 
 async function getRoleData(role) {
-  if (window.location.protocol === "file:") {
+  if ((window.location.protocol === "file:" || window.location.hostname.endsWith("github.io"))) {
     document.querySelector("#service-status").textContent = "Автономное демо";
     return { data: mockRoleData[role], demo: true };
   }
@@ -566,7 +566,7 @@ async function checkHealth() {
     const health = await api("/api/health");
     indicator.textContent = health.mode === "demo" ? "Демо-режим активен" : "Бот подключён";
   } catch {
-    indicator.textContent = window.location.protocol === "file:" ? "Автономное демо" : "Сервис пока недоступен";
+    indicator.textContent = (window.location.protocol === "file:" || window.location.hostname.endsWith("github.io")) ? "Автономное демо" : "Сервис пока недоступен";
   }
 }
 
